@@ -1,9 +1,11 @@
 package br.ufsc.inf.lapesd.sddms.deployer.endpoint;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Base64;
 
 import javax.ws.rs.Consumes;
@@ -26,7 +28,7 @@ public class DataServiceRequestEndpoint {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response createNewDataService(DataServiceRequest dataServiceRequest) {
+    public Response createNewDataService(DataServiceRequest dataServiceRequest) throws InterruptedException {
         try {
             createInstance(dataServiceRequest);
         } catch (IOException e) {
@@ -36,7 +38,7 @@ public class DataServiceRequestEndpoint {
         return Response.ok().build();
     }
 
-    private void createInstance(DataServiceRequest dataServiceRequest) throws IOException {
+    private void createInstance(DataServiceRequest dataServiceRequest) throws IOException, InterruptedException {
         String requestId = dataServiceRequest.getRequestId();
         File root = new File(this.instancesFolder);
         if (!root.exists()) {
@@ -68,7 +70,8 @@ public class DataServiceRequestEndpoint {
         writer.write(new String(ontology));
         writer.close();
 
-        File rdfFolder = new File(this.instancesFolder + File.separator + requestId + File.separator + "rdf");
+        String rdfFolderPath = this.instancesFolder + File.separator + requestId + File.separator + "rdf";
+        File rdfFolder = new File(rdfFolderPath);
         if (!rdfFolder.exists()) {
             rdfFolder.mkdir();
         }
@@ -76,7 +79,29 @@ public class DataServiceRequestEndpoint {
         CsvReader csvReader = new CsvReader();
         csvReader.setMappingFile(this.instancesFolder + File.separator + requestId + File.separator + "mapping.jsonld");
         csvReader.setCsvFilesFolder(this.instancesFolder + File.separator + requestId + File.separator + "data");
-        csvReader.setRdfFolder(this.instancesFolder + File.separator + requestId + File.separator + "rdf");
+        csvReader.setRdfFolder(rdfFolderPath);
         csvReader.process();
+
+        String filesToProcess = "";
+        String[] rdfFiles = rdfFolder.list();
+        for (int i = 0; i < rdfFiles.length; i++) {
+            filesToProcess = filesToProcess + rdfFolderPath + File.separator + rdfFiles[i] + " ";
+        }
+
+        String tdbFolder = newInstanceFolder + File.separator + "tdb";
+
+        String commandToCreateTdb = "apache-jena-3.6.0/bin/tdbloader --loc %s %s";
+        commandToCreateTdb = String.format(commandToCreateTdb, tdbFolder, filesToProcess);
+        Process p = Runtime.getRuntime().exec(commandToCreateTdb);
+        p.waitFor();
+
+        // Grab output and print to display
+        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+        String line = "";
+        while ((line = reader.readLine()) != null) {
+            System.out.println(line);
+        }
+
     }
 }
