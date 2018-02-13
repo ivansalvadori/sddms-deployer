@@ -45,12 +45,13 @@ public class DataServiceRequestEndpoint {
             root.mkdir();
         }
 
-        File newInstanceFolder = new File(this.instancesFolder + File.separator + requestId);
+        String newInstanceFolderPath = this.instancesFolder + File.separator + requestId;
+        File newInstanceFolder = new File(newInstanceFolderPath);
         if (!newInstanceFolder.exists()) {
             newInstanceFolder.mkdir();
         }
 
-        File dataFolder = new File(this.instancesFolder + File.separator + requestId + File.separator + "data");
+        File dataFolder = new File(newInstanceFolderPath + File.separator + "data");
         if (!dataFolder.exists()) {
             dataFolder.mkdir();
         }
@@ -61,24 +62,24 @@ public class DataServiceRequestEndpoint {
         writer.close();
 
         byte[] mapping = Base64.getDecoder().decode(dataServiceRequest.getMappingFileBase64().getBytes());
-        writer = new BufferedWriter(new FileWriter(this.instancesFolder + File.separator + requestId + File.separator + "mapping.jsonld"));
+        writer = new BufferedWriter(new FileWriter(newInstanceFolderPath + File.separator + "mapping.jsonld"));
         writer.write(new String(mapping));
         writer.close();
 
         byte[] ontology = Base64.getDecoder().decode(dataServiceRequest.getOntologyFileBase64().getBytes());
-        writer = new BufferedWriter(new FileWriter(this.instancesFolder + File.separator + requestId + File.separator + "ontology.owl"));
+        writer = new BufferedWriter(new FileWriter(newInstanceFolderPath + File.separator + "ontology.owl"));
         writer.write(new String(ontology));
         writer.close();
 
-        String rdfFolderPath = this.instancesFolder + File.separator + requestId + File.separator + "rdf";
+        String rdfFolderPath = newInstanceFolderPath + File.separator + "rdf";
         File rdfFolder = new File(rdfFolderPath);
         if (!rdfFolder.exists()) {
             rdfFolder.mkdir();
         }
 
         CsvReader csvReader = new CsvReader();
-        csvReader.setMappingFile(this.instancesFolder + File.separator + requestId + File.separator + "mapping.jsonld");
-        csvReader.setCsvFilesFolder(this.instancesFolder + File.separator + requestId + File.separator + "data");
+        csvReader.setMappingFile(newInstanceFolderPath + File.separator + "mapping.jsonld");
+        csvReader.setCsvFilesFolder(newInstanceFolderPath + File.separator + "data");
         csvReader.setRdfFolder(rdfFolderPath);
         csvReader.process();
 
@@ -90,18 +91,68 @@ public class DataServiceRequestEndpoint {
 
         String tdbFolder = newInstanceFolder + File.separator + "tdb";
 
-        String commandToCreateTdb = "apache-jena-3.6.0/bin/tdbloader --loc %s %s";
-        commandToCreateTdb = String.format(commandToCreateTdb, tdbFolder, filesToProcess);
-        Process p = Runtime.getRuntime().exec(commandToCreateTdb);
-        p.waitFor();
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
 
-        // Grab output and print to display
-        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            try {
+                String commandToCreateTdb = "cmd /c set JENA_HOME=apache-jena-3.6.0 && apache-jena-3.6.0\\bat\\tdbloader.bat --loc %s %s";
+                commandToCreateTdb = String.format(commandToCreateTdb, tdbFolder, filesToProcess);
+                String line;
+                Process p = Runtime.getRuntime().exec(commandToCreateTdb);
+                BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+                while ((line = bri.readLine()) != null) {
+                    System.out.println(line);
+                }
+                bri.close();
+                while ((line = bre.readLine()) != null) {
+                    System.out.println(line);
+                }
+                bre.close();
+                p.waitFor();
+                System.out.println("Done.");
+            } catch (Exception err) {
+                err.printStackTrace();
+            }
 
-        String line = "";
-        while ((line = reader.readLine()) != null) {
+        } else {
+            String line;
+            String commandToCreateTdb = "apache-jena-3.6.0/bin/tdbloader --loc %s %s";
+            commandToCreateTdb = String.format(commandToCreateTdb, tdbFolder, filesToProcess);
+            Process p = Runtime.getRuntime().exec(commandToCreateTdb);
+            BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+            while ((line = bri.readLine()) != null) {
+                System.out.println(line);
+            }
+            bri.close();
+            while ((line = bre.readLine()) != null) {
+                System.out.println(line);
+            }
+            bre.close();
+            p.waitFor();
+            System.out.println("TDB created");
+
+            startSddms(newInstanceFolderPath);
+
+        }
+    }
+
+    private void startSddms(String newInstanceFolderPath) throws IOException {
+        // Runtime.getRuntime().exec("cp sddms.jar " + newInstanceFolderPath);
+        // Runtime.getRuntime().exec("cp application-sddms.yml " + newInstanceFolderPath
+        // + File.separator + "application.yml");
+        Process p = Runtime.getRuntime().exec("java -Dserver.port=9999 -jar sddms.jar");
+        String line;
+        BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+        while ((line = bri.readLine()) != null) {
             System.out.println(line);
         }
-
+        bri.close();
+        while ((line = bre.readLine()) != null) {
+            System.out.println(line);
+        }
+        bre.close();
     }
 }
