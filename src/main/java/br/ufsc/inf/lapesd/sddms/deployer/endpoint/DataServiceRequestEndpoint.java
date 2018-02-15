@@ -3,9 +3,11 @@ package br.ufsc.inf.lapesd.sddms.deployer.endpoint;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import javax.ws.rs.Consumes;
@@ -15,7 +17,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Component;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import br.ufsc.inf.lapesd.csv2rdf.CsvReader;
 import br.ufsc.inf.lapesd.sddms.deployer.DataServiceRequest;
@@ -139,10 +146,17 @@ public class DataServiceRequestEndpoint {
     }
 
     private void startSddms(String newInstanceFolderPath) throws IOException {
-        // Runtime.getRuntime().exec("cp sddms.jar " + newInstanceFolderPath);
-        // Runtime.getRuntime().exec("cp application-sddms.yml " + newInstanceFolderPath
-        // + File.separator + "application.yml");
-        Process p = Runtime.getRuntime().exec("java -Dserver.port=9999 -jar sddms.jar");
+        String command = "java -jar sddms.jar --server.port=%s --config.persistenceType=%s --config.tdbPath=%s --config.ontologyFile=%s --config.ontologyFormat=%s --config.managedUri=%s --config.importExternalWebResources=%s";
+
+        int instancePort = 9999;
+        boolean importExternalWebResources = true;
+
+        JsonObject mappingConfing = this.readConfigMapping(newInstanceFolderPath + "/mapping.jsonld");
+        String ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
+        String managedUri = mappingConfing.get("managedUri").getAsString();
+
+        command = String.format(command, instancePort, "TdbSingleModel", newInstanceFolderPath + "/tdb", newInstanceFolderPath + "/ontology.owl", ontologyFormat, managedUri, importExternalWebResources);
+        Process p = Runtime.getRuntime().exec(command);
         String line;
         BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
         BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
@@ -155,4 +169,17 @@ public class DataServiceRequestEndpoint {
         }
         bre.close();
     }
+
+    private JsonObject readConfigMapping(String mappingFile) {
+        try (FileInputStream inputStream = FileUtils.openInputStream(new File(mappingFile))) {
+            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
+            JsonObject mappingConfing = mappingJsonObject.get("@configuration").getAsJsonObject();
+            return mappingConfing;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Mapping file not found");
+        }
+    }
+
 }
