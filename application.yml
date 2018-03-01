@@ -1,3 +1,4 @@
 server.port: 44444
 config:
-  persistenceType: "TdbSingleModel"
+  rangePortStart: 9000
+  rangePortEnd: 9999
