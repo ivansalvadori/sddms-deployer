@@ -47,9 +47,46 @@
 	</build>
 
 	<dependencies>
+	
+	<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-sdb</artifactId>
+			<version>3.2.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-iri</artifactId>
+			<version>3.2.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-core</artifactId>
+			<version>3.2.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-shaded-guava</artifactId>
+			<version>3.2.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-arq</artifactId>
+			<version>3.2.0</version>
+		</dependency>
+		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -78,12 +115,21 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.5</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>br.ufsc.inf.lapesd.ld-jax-rs</groupId>
+			<artifactId>ld-jax-rs-jena</artifactId>
+			<version>1.0-SNAPSHOT</version>
+		</dependency>
 
 		<dependency>
 			<groupId>br.ufsc.inf.lapesd</groupId>
 			<artifactId>csv2rdf</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		
+		
+		
 	</dependencies>
 
 </project>

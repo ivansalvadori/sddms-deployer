@@ -11,8 +11,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.jena.ontology.OntModelSpec;
+import org.apache.jena.rdf.model.InfModel;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -39,19 +45,34 @@ public class DataServiceRequestEndpoint {
     }
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response listRunningInstances() {
+    @Produces({ "application/ld+json;qs=1", "application/n-quads", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
+    public Response listRequests() {
+        InfModel requestsOntoModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM);
 
         String scheme = uriInfo.getAbsolutePath().getScheme();
         String host = uriInfo.getAbsolutePath().getHost().toString();
-        String urlIdPattern = "%s://%s:%s/sddms";
+        String requestedUri = uriInfo.getRequestUri().toASCIIString();
+
+        String sddmsUriPattern = "%s://%s:%s/sddms";
+        String requestUriPattern = "%s/%s";
 
         List<RunningInstance> runningInstances = this.instanceManager.getRunningInstances();
         for (RunningInstance runningInstance : runningInstances) {
-            String urlId = String.format(urlIdPattern, scheme, host, runningInstance.getPort());
-            // runningInstance.setId(urlId);
+            String dataServiceRequestUri = String.format(requestUriPattern, requestedUri, runningInstance.getRequestId());
+            String sddmsUri = String.format(sddmsUriPattern, scheme, host, runningInstance.getPort());
+            Resource resourceType = requestsOntoModel.createResource("http://sddms.com.br/ontology/DataServiceRequest");
+            Resource requestOntoModel = requestsOntoModel.createResource(dataServiceRequestUri, resourceType);
+            requestOntoModel.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/runningDataServiceInstanceUri"), sddmsUri);
+            requestOntoModel.addProperty(ResourceFactory.createProperty("http://sddms.com.br/ontology/dataServiceRequestId"), runningInstance.getRequestId());
         }
-        return Response.ok(runningInstances).build();
+        return Response.ok(requestsOntoModel).build();
+    }
+
+    @GET
+    @Path("{requestId}")
+    @Produces({ "application/n-quads", "application/ld+json;qs=1", "application/rdf+thrift", "application/x-turtle", "application/x-trig", "application/rdf+xml", "text/turtle", "application/trix", "application/turtle", "text/n-quads", "application/rdf+json", "application/trix+xml", "application/trig", "text/trig", "application/n-triples", "text/nquads", "text/plain" })
+    public Response listRequest() {
+        return Response.status(Status.NOT_IMPLEMENTED).build();
     }
 
 }
