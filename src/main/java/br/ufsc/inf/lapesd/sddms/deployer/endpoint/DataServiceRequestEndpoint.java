@@ -2,7 +2,9 @@ package br.ufsc.inf.lapesd.sddms.deployer.endpoint;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -33,15 +35,17 @@ public class DataServiceRequestEndpoint {
     @Context
     private UriInfo uriInfo;
 
+    @Context
+    private HttpServletRequest httpRequest;
+
     @Autowired
     private InstanceManager instanceManager;
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response createNewDataService(DataServiceRequest dataServiceRequest) throws IOException, InterruptedException {
+    public Response createNewDataService(DataServiceRequest dataServiceRequest) throws IOException, InterruptedException, ExecutionException {
         instanceManager.createAndStartInstance(dataServiceRequest);
-        return Response.ok().build();
+        return Response.status(Status.OK).build();
     }
 
     @GET

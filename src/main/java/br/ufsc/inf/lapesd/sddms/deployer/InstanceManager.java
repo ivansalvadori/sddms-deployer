@@ -17,6 +17,7 @@ import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import br.ufsc.inf.lapesd.csv2rdf.CsvReader;
@@ -58,6 +59,7 @@ public class InstanceManager {
         }
     }
 
+    @Async
     public void createAndStartInstance(DataServiceRequest dataServiceRequest) throws IOException, InterruptedException {
         String requestId = dataServiceRequest.getRequestId();
 
