@@ -1,4 +1,4 @@
-server.port: 44444
+server.port: 45000
 config:
   rangePortStart: 9000
   rangePortEnd: 9999

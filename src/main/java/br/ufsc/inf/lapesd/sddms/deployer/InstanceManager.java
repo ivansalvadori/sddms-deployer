@@ -68,28 +68,34 @@ public class InstanceManager {
         String rdfFolderPath = newInstanceFolderPath + File.separator + "rdf";
 
         createFolders(dataServiceRequest, newInstanceFolderPath, rdfFolderPath);
-        convertToRdf(newInstanceFolderPath, rdfFolderPath);
+        convertToRdf(newInstanceFolderPath, rdfFolderPath, dataServiceRequest.getCsvSeparator(), dataServiceRequest.getCsvEncode());
         createTDB(newInstanceFolderPath, rdfFolderPath, tdbFolderPath);
         startService(requestId, newInstanceFolderPath);
     }
 
-    private void convertToRdf(String newInstanceFolderPath, String rdfFolderPath) {
+    private void convertToRdf(String newInstanceFolderPath, String rdfFolderPath, String csvSeparator, String csvEncode) {
         CsvReader csvReader = new CsvReader();
-        csvReader.setMappingFile(newInstanceFolderPath + File.separator + "mapping.jsonld");
         csvReader.setCsvFilesFolder(newInstanceFolderPath + File.separator + "data");
         csvReader.setRdfFolder(rdfFolderPath);
+        csvReader.setWriteToFile(true);
+        csvReader.setCsvSeparator(csvSeparator);
+        csvReader.setCsvEncode(csvEncode);
+        csvReader.setOntologyFile(newInstanceFolderPath + File.separator + "ontology.owl");
+        csvReader.setMappingFile(newInstanceFolderPath + File.separator + "mapping.jsonld");
+
         csvReader.process();
     }
 
     private void createFolders(DataServiceRequest dataServiceRequest, String newInstanceFolderPath, String rdfFolderPath) throws IOException {
-        File newInstanceFolder = new File(newInstanceFolderPath);
-        if (!newInstanceFolder.exists()) {
-            newInstanceFolder.mkdir();
-        }
 
         File root = new File(this.instancesFolder);
         if (!root.exists()) {
             root.mkdir();
+        }
+
+        File newInstanceFolder = new File(newInstanceFolderPath);
+        if (!newInstanceFolder.exists()) {
+            newInstanceFolder.mkdir();
         }
 
         File dataFolder = new File(newInstanceFolderPath + File.separator + "data");
