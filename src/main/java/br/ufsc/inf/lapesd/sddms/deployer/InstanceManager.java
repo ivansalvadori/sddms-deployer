@@ -4,21 +4,28 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import br.ufsc.inf.lapesd.csv2rdf.CsvReader;
 
@@ -82,7 +89,7 @@ public class InstanceManager {
         csvReader.setCsvEncode(csvEncode);
         csvReader.setOntologyFile(newInstanceFolderPath + File.separator + "ontology.owl");
         csvReader.setMappingFile(newInstanceFolderPath + File.separator + "mapping.jsonld");
-
+        csvReader.setManagedUri(readManagedUri(newInstanceFolderPath + File.separator + "mapping.jsonld"));
         csvReader.process();
     }
 
@@ -182,6 +189,18 @@ public class InstanceManager {
             p.waitFor();
             System.out.println("TDB created");
 
+        }
+    }
+
+    private String readManagedUri(String mappingFile) {
+        try (FileInputStream inputStream = FileUtils.openInputStream(new File(mappingFile))) {
+            String mappingString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+            JsonObject mappingJsonObject = new JsonParser().parse(mappingString).getAsJsonObject();
+            String managedUri = mappingJsonObject.get("@managedUri").getAsString();
+            return managedUri;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Mapping file not found");
         }
     }
 

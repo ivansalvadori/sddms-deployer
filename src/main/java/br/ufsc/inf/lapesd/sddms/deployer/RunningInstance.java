@@ -35,9 +35,8 @@ public class RunningInstance implements Runnable {
 
         boolean importExternalWebResources = true;
 
-        JsonObject mappingConfing = this.readConfigMapping(this.instanceFolderPath + "/mapping.jsonld");
-        String ontologyFormat = mappingConfing.get("ontologyFormat").getAsString();
-        String managedUri = mappingConfing.get("managedUri").getAsString();
+        String managedUri = readManagedUri(instanceFolderPath + File.separator + "mapping.jsonld");
+        String ontologyFormat = "n3";
 
         command = String.format(command, this.port, "TdbSingleModel", instanceFolderPath + "/tdb", instanceFolderPath + "/ontology.owl", ontologyFormat, managedUri, importExternalWebResources);
         Process p;
@@ -60,12 +59,12 @@ public class RunningInstance implements Runnable {
         }
     }
 
-    private JsonObject readConfigMapping(String mappingFile) {
+    private String readManagedUri(String mappingFile) {
         try (FileInputStream inputStream = FileUtils.openInputStream(new File(mappingFile))) {
-            String mappingContextString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
-            JsonObject mappingJsonObject = new JsonParser().parse(mappingContextString).getAsJsonObject();
-            JsonObject mappingConfing = mappingJsonObject.get("@configuration").getAsJsonObject();
-            return mappingConfing;
+            String mappingString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
+            JsonObject mappingJsonObject = new JsonParser().parse(mappingString).getAsJsonObject();
+            String managedUri = mappingJsonObject.get("@managedUri").getAsString();
+            return managedUri;
 
         } catch (IOException e) {
             throw new RuntimeException("Mapping file not found");
