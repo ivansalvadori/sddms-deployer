@@ -61,7 +61,11 @@ public class InstanceManager {
                 String requestId = dir.getName();
                 logger.info("Starting sddms for requestID " + requestId);
                 String instanceFolderPath = this.instancesFolder + File.separator + requestId;
-                startService(requestId, instanceFolderPath);
+
+                String mappingFile = instanceFolderPath + File.separator + "mapping.jsonld";
+                String resourceDomain = this.readResourceDomain(mappingFile);
+
+                startService(requestId, instanceFolderPath, resourceDomain);
             }
         }
     }
@@ -77,7 +81,11 @@ public class InstanceManager {
         createFolders(dataServiceRequest, newInstanceFolderPath, rdfFolderPath);
         convertToRdf(newInstanceFolderPath, rdfFolderPath, dataServiceRequest.getCsvSeparator(), dataServiceRequest.getCsvEncode());
         createTDB(newInstanceFolderPath, rdfFolderPath, tdbFolderPath);
-        startService(requestId, newInstanceFolderPath);
+
+        String mappingFile = newInstanceFolderPath + File.separator + "mapping.jsonld";
+        String resourceDomain = this.readResourceDomain(mappingFile);
+
+        startService(requestId, newInstanceFolderPath, resourceDomain);
     }
 
     private void convertToRdf(String newInstanceFolderPath, String rdfFolderPath, String csvSeparator, String csvEncode) {
@@ -88,8 +96,10 @@ public class InstanceManager {
         csvReader.setCsvSeparator(csvSeparator);
         csvReader.setCsvEncode(csvEncode);
         csvReader.setOntologyFile(newInstanceFolderPath + File.separator + "ontology.owl");
-        csvReader.setMappingFile(newInstanceFolderPath + File.separator + "mapping.jsonld");
-        csvReader.setManagedUri(readManagedUri(newInstanceFolderPath + File.separator + "mapping.jsonld"));
+
+        String mappingFile = newInstanceFolderPath + File.separator + "mapping.jsonld";
+        csvReader.setMappingFile(mappingFile);
+        csvReader.setResourceDomain(this.readResourceDomain(mappingFile));
         csvReader.process();
     }
 
@@ -131,9 +141,9 @@ public class InstanceManager {
         }
     }
 
-    private void startService(String requestId, String newInstanceFolderPath) {
+    private void startService(String requestId, String newInstanceFolderPath, String resourceDomain) {
         int port = this.getAvailablePort();
-        RunningInstance runningInstance = new RunningInstance(requestId, newInstanceFolderPath, port);
+        RunningInstance runningInstance = new RunningInstance(requestId, newInstanceFolderPath, port, resourceDomain);
         (new Thread(runningInstance)).start();
         this.runningInstances.add(runningInstance);
     }
@@ -192,11 +202,11 @@ public class InstanceManager {
         }
     }
 
-    private String readManagedUri(String mappingFile) {
+    private String readResourceDomain(String mappingFile) {
         try (FileInputStream inputStream = FileUtils.openInputStream(new File(mappingFile))) {
             String mappingString = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
             JsonObject mappingJsonObject = new JsonParser().parse(mappingString).getAsJsonObject();
-            String managedUri = mappingJsonObject.get("@managedUri").getAsString();
+            String managedUri = mappingJsonObject.get("@resourceDomain").getAsString();
             return managedUri;
 
         } catch (IOException e) {
